@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: k53certbot
-Version: 0.0.0
+Version: 0.0.2
 Summary: Kubernetes + Route53 + ACME
 Home-page: https://github.com/GeoffWilliams/k53certbot.git
 Author: Geoff Williams

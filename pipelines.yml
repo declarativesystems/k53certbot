@@ -1,0 +1,99 @@
+apiVersion: v1.1
+resources:
+  - name: gitK53Certbot
+    type: GitRepo
+    configuration:
+      gitProvider: githubAccountGeoffwilliams
+      path: declarativesystems/k53certbot
+
+pipelines:
+  - name: k53certbot
+    configuration:
+      runtime:
+        type: image
+        image:
+          custom:
+            name: "declarativesystems.jfrog.io/docker/docker-local/pipelines"
+            tag: "0.0.1-8"
+            registry: artifactory
+            sourceRepository: docker-local
+
+    steps:
+      - name: pipInstall
+        type: declarativesystems/PipInstall
+        configuration:
+          affinityGroup: python_k53certbot
+          sourceArtifactory: artifactory
+          sourceLocation: $res_gitK53Certbot_resourcePath
+          repositoryName: pypi
+          integrations:
+            - name: artifactory
+          inputResources:
+            - name: gitK53Certbot
+        execution:
+          onFailure:
+            - env
+
+      - name: pythonWheelDeploy
+        type: declarativesystems/PythonWheelDeploy
+        configuration:
+          affinityGroup: python_k53certbot
+          sourceArtifactory: artifactory # name of artifactory integration to publish artefacts to
+          repositoryName: pypi-local # repository to publish artefacts to
+          sourceLocation: $res_gitK53Certbot_resourcePath # where to find sources to build
+          integrations:
+            - name: artifactory # grant access to integration
+          inputResources:
+            - name: gitK53Certbot
+          inputSteps:
+            - name: pipInstall
+
+      - name: binaryK53Certbot
+        type: declarativesystems/ArtifactoryDownload
+        configuration:
+          affinityGroup: docker_k53certbot
+          sourceArtifactory: artifactory
+          path: pypi-local/k53certbot/${k53CertbotVersion}/k53certbot-${k53CertbotVersion}-py3-none-any.whl
+          integrations:
+            - name: artifactory
+          inputSteps:
+            - name: pythonWheelDeploy
+          inputResources:
+            - name: gitK53Certbot
+        execution:
+          onStart:
+            - cd $res_gitK53Certbot_resourcePath
+            - add_pipeline_variables k53CertbotVersion=$(make print_version)
+
+      - name: dockerBuild
+        type: DockerBuild
+        configuration:
+          affinityGroup: docker_k53certbot
+          dockerFileLocation: .
+          dockerFileName: Dockerfile
+          dockerImageName: declarativesystems.jfrog.io/docker-local/k53certbot
+          dockerImageTag: ${k53CertbotVersion}-${run_number}
+          dockerOptions: --build-arg K53CERTBOT_VERSION=${k53CertbotVersion}
+          inputResources:
+            - name: gitK53Certbot
+          integrations:
+            - name: artifactory
+          inputSteps:
+            - name: binaryK53Certbot
+        execution:
+          onStart:
+            - cd $res_gitK53Certbot_resourcePath
+            - mkdir -p dist
+            - cp $res_binaryK53Certbot_resourcePath dist
+          onFailure:
+            - tree -L 4
+
+      - name: dockerPush
+        type: DockerPush
+        configuration:
+          affinityGroup: docker_k53certbot
+          targetRepository: docker-local
+          integrations:
+            - name: artifactory
+          inputSteps:
+            - name: dockerBuild

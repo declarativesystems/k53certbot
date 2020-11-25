@@ -2,3 +2,4 @@ certbot-dns-route53
 kubernetes
 loguru
 docopt
+requests
