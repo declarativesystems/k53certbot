@@ -1,0 +1,3 @@
+[console_scripts]
+k53certbot = k53certbot.cli:main
+
