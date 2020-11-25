@@ -1,0 +1,23 @@
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1beta1
+metadata:
+  name: yolk-tracker-demo
+  annotations:
+    kubernetes.io/ingress.class: ambassador
+  labels:
+    app.kubernetes.io/name: some-app
+spec:
+  tls:
+    - hosts:
+        - example.yourdomain.com
+      # https://github.com/datawire/ambassador/issues/1255
+      secretName: tls-example-yourdomain-com
+  rules:
+    - host: example.yourdomain.com
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: some-app
+              servicePort: 80

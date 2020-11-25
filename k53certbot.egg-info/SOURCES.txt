@@ -5,6 +5,7 @@ setup.py
 k53certbot/__init__.py
 k53certbot/api.py
 k53certbot/cli.py
+k53certbot/version.py
 k53certbot.egg-info/PKG-INFO
 k53certbot.egg-info/SOURCES.txt
 k53certbot.egg-info/dependency_links.txt

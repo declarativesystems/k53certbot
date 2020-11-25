@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-k53certbot = {editable = true, path = "."}
+k53certbot = {path = "."}
 
 [dev-packages]
 pytest = "*"

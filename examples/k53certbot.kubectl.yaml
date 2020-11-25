@@ -1,0 +1,84 @@
+# Rights on Kubernetes API
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  namespace: kube-system
+  name: k53certbot
+rules:
+  - apiGroups: [""]
+    resources: ["services","endpoints","pods"]
+    verbs: ["get","watch","list"]
+  - apiGroups: ["extensions","networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get","watch","list"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["list","watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get","delete", "create"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  namespace: kube-system
+  name: k53certbot
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: k53certbot
+subjects:
+  - kind: ServiceAccount
+    name: certbot-service
+    namespace:  kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: kube-system
+  name: k53certbot
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: k53certbot
+  template:
+    metadata:
+      labels:
+        app: k53certbot
+    spec:
+      serviceAccountName: certbot-service
+      containers:
+        - name: k53certbot
+          image: <REPLACE_WITH_YOUR_IMAGE>
+          env:
+            - name: ZEROSSL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zerossl
+                  key: zerossl_api_key
+            - name: CERTBOT_ADMIN_EMAIL
+              value: <REPLACE_WITH_YOUR_EMAIL>
+          command:
+            - k53certbot
+          args:
+            # Adjust as needed...
+            - --debug
+            - --provider
+            - zerossl
+# If you would like to backup your TLS files and have configured EFS, you
+# can add something like this to store the directory on a persistent volume.
+# If you have no backups the secrets will be regenerated when k53certbot
+# runs
+#          volumeMounts:
+#            - name: persistent-storage
+#              mountPath: /etc/letsencrypt
+#      volumes:
+#        - name: persistent-storage
+#          persistentVolumeClaim:
+#            claimName: efs-claim-kube-system-ns
+      securityContext:
+        fsGroup: 65534 # For ExternalDNS to be able to read Kubernetes and AWS token files
+
