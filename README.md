@@ -12,6 +12,10 @@ namespace of your Kubernetes cluster_
 
 ### Container image (requires podman - or build manually with Docker)
 
+The latest image is hosted on 
+[quay.io](https://quay.io/repository/declarativesystems/k53certbot) or you can
+build yourself:
+
 ```shell
 make image
 ```

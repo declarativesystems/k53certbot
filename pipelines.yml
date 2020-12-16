@@ -13,8 +13,8 @@ pipelines:
         type: image
         image:
           custom:
-            name: "declarativesystems.jfrog.io/docker/docker-local/pipelines"
-            tag: "0.0.1-8"
+            name: "declarativesystems.jfrog.io/docker-local/pipelines"
+            tag: "0.4.0-23"
             registry: artifactory
             sourceRepository: docker-local
 
@@ -65,35 +65,25 @@ pipelines:
             - cd $res_gitK53Certbot_resourcePath
             - add_pipeline_variables k53CertbotVersion=$(make print_version)
 
-      - name: dockerBuild
-        type: DockerBuild
+      - name: buildAndPushImage
+        type: Bash
         configuration:
           affinityGroup: docker_k53certbot
-          dockerFileLocation: .
-          dockerFileName: Dockerfile
-          dockerImageName: declarativesystems.jfrog.io/docker-local/k53certbot
-          dockerImageTag: ${k53CertbotVersion}-${run_number}
-          dockerOptions: --build-arg K53CERTBOT_VERSION=${k53CertbotVersion}
           inputResources:
             - name: gitK53Certbot
           integrations:
-            - name: artifactory
+            - name: quayIo
           inputSteps:
             - name: binaryK53Certbot
         execution:
-          onStart:
+          onExecute:
             - cd $res_gitK53Certbot_resourcePath
             - mkdir -p dist
             - cp $res_binaryK53Certbot_resourcePath dist
+            - podman login "$int_quayIo_url" --password $(echo "$int_quayIo_password") --username $(echo "$int_quayIo_username")
+
+            - make image_build
+            - make ci_image_push
           onFailure:
             - tree -L 4
-
-      - name: dockerPush
-        type: DockerPush
-        configuration:
-          affinityGroup: docker_k53certbot
-          targetRepository: docker-local
-          integrations:
-            - name: artifactory
-          inputSteps:
-            - name: dockerBuild
+            - env
