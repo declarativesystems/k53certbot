@@ -1,8 +1,8 @@
 ---
 kind: Ingress
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 metadata:
-  name: yolk-tracker-demo
+  name: some-app
   annotations:
     kubernetes.io/ingress.class: ambassador
   labels:
@@ -18,6 +18,9 @@ spec:
       http:
         paths:
           - path: /
+            pathType: Prefix
             backend:
-              serviceName: some-app
-              servicePort: 80
+              service:
+                name: some-app
+                port:
+                  number: 80

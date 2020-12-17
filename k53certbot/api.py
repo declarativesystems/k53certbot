@@ -84,7 +84,6 @@ def watch_kubernetes(cert_provider, test_cert, namespace):
     kubernetes.config.load_incluster_config()
     logger.debug("...done")
 
-
     with kubernetes.client.ApiClient() as api_client:
         # scan all ingress instances
         api_instance = kubernetes.client.ExtensionsV1beta1Api(api_client)

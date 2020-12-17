@@ -16,7 +16,7 @@
 
 Usage:
   k53certbot [--debug] [--test-cert] [--namespace <namespace>] [--provider <provider>]
-  k53certbot --version
+  k53certbot [--debug] --version
 
 Options:
   -h --help                     Show this screen.
@@ -57,7 +57,7 @@ def setup_logging(level, logger_name=None):
 
 
 def main():
-    arguments = docopt(__doc__, version=version.version)
+    arguments = docopt(__doc__, version=version.__version__)
     setup_logging("DEBUG" if arguments['--debug'] else "INFO")
     logger.debug(f"parsed arguments: ${arguments}")
     exit_status = 1

@@ -5,6 +5,11 @@ resources:
     configuration:
       gitProvider: githubAccountGeoffwilliams
       path: declarativesystems/k53certbot
+  - name: pythonEnvK53Certbot
+    type: declarativesystems/PythonEnv
+    configuration:
+      sourceArtifactory: artifactory # for resolving and publishing packages
+      repositoryName: pypi
 
 pipelines:
   - name: k53certbot
@@ -14,50 +19,35 @@ pipelines:
         image:
           custom:
             name: "declarativesystems.jfrog.io/docker-local/pipelines"
-            tag: "0.4.0-23"
+            tag: "0.8.1"
             registry: artifactory
             sourceRepository: docker-local
 
     steps:
-      - name: pipInstall
-        type: declarativesystems/PipInstall
+      - name: pythonBuildAndDeploy
+        type: Bash
         configuration:
-          affinityGroup: python_k53certbot
-          sourceArtifactory: artifactory
-          sourceLocation: $res_gitK53Certbot_resourcePath
-          repositoryName: pypi
           integrations:
             - name: artifactory
           inputResources:
+            - name: pythonEnvK53Certbot
             - name: gitK53Certbot
         execution:
-          onFailure:
-            - env
+          onExecute:
+            - cd $res_gitK53Certbot_resourcePath
+            - add_pipeline_variables k53CertbotVersion=$(make print_version)
+            - make upload_artifactory
 
-      - name: pythonWheelDeploy
-        type: declarativesystems/PythonWheelDeploy
-        configuration:
-          affinityGroup: python_k53certbot
-          sourceArtifactory: artifactory # name of artifactory integration to publish artefacts to
-          repositoryName: pypi-local # repository to publish artefacts to
-          sourceLocation: $res_gitK53Certbot_resourcePath # where to find sources to build
-          integrations:
-            - name: artifactory # grant access to integration
-          inputResources:
-            - name: gitK53Certbot
-          inputSteps:
-            - name: pipInstall
-
-      - name: binaryK53Certbot
+      - name: binary
         type: declarativesystems/ArtifactoryDownload
         configuration:
-          affinityGroup: docker_k53certbot
+          affinityGroup: k53certbot
           sourceArtifactory: artifactory
           path: pypi-local/k53certbot/${k53CertbotVersion}/k53certbot-${k53CertbotVersion}-py3-none-any.whl
           integrations:
             - name: artifactory
           inputSteps:
-            - name: pythonWheelDeploy
+            - name: pythonBuildAndDeploy
           inputResources:
             - name: gitK53Certbot
         execution:
@@ -68,18 +58,18 @@ pipelines:
       - name: buildAndPushImage
         type: Bash
         configuration:
-          affinityGroup: docker_k53certbot
+          affinityGroup: k53certbot
           inputResources:
             - name: gitK53Certbot
           integrations:
             - name: quayIo
           inputSteps:
-            - name: binaryK53Certbot
+            - name: binary
         execution:
           onExecute:
             - cd $res_gitK53Certbot_resourcePath
             - mkdir -p dist
-            - cp $res_binaryK53Certbot_resourcePath dist
+            - cp $res_binary_resourcePath dist
             - podman login "$int_quayIo_url" --password $(echo "$int_quayIo_password") --username $(echo "$int_quayIo_username")
 
             - make image_build

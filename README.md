@@ -7,7 +7,7 @@ declarations and are unable to use [cert-manager](https://cert-manager.io/) whic
 incompatibility with AWS Fargate.
 
 ## Setup
-_k53certbot is intented to run as a `deployment` inside the `kube-system` 
+_k53certbot is intended to run as a `deployment` inside the `kube-system` 
 namespace of your Kubernetes cluster_
 
 ### Container image (requires podman - or build manually with Docker)
@@ -118,7 +118,7 @@ For the rest of us - break your cluster deployment into steps:
        files under `/etc/letsencrypt`:
         * Secrets will be named: `tls-<FQDN WITH PERIODS CONVERTED TO HYPHENS>`
           eg: the secret for `example.yourdomain.com` would be 
-          `tls-examlple-yourdomain-com` - periods are replaced with hypens as
+          `tls-example-yourdomain-com` - periods are replaced with hyphens as
           they cause problems in Ambassador
         * Any existing secret with the same name will be replaced
        
