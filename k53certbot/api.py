@@ -18,6 +18,7 @@ import kubernetes.config
 import kubernetes.watch
 import base64
 import requests
+import time
 from loguru import logger
 
 ADDED = "ADDED"
@@ -26,6 +27,7 @@ MODIFIED = "MODIFIED"
 TLS_DIR = "/etc/letsencrypt/live"
 PROVIDER_LETSENCRYPT = "letsencrypt"
 PROVIDER_ZEROSSL = "zerossl"
+REQUEST_DELAY_SECONDS=10
 
 settings = {}
 
@@ -119,6 +121,10 @@ def watch_kubernetes(use_active_kube_context, cert_provider, test_cert, dry_run,
                         else:
                             cert_providers[cert_provider](test_cert, data["fqdn"], data["action"])
                             ensure_k8s_secret(api_client, data["namespace"], data["fqdn"])
+
+                        # Try and avoid hammering certbot
+                        logger.info("sleeping between requests: {REQUEST_DELAY_SECONDS}", REQUEST_DELAY_SECONDS=REQUEST_DELAY_SECONDS)
+                        time.sleep(REQUEST_DELAY_SECONDS)
 
             except Exception as e:
                 logger.error(f"FIXME caught and ignored:{type(e)} - message:{e} (to avoid crash)")
