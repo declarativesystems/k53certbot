@@ -37,7 +37,7 @@ image_build: dist
 	buildah bud --format docker -t $(ci_image_name):$(container_version) --build-arg K53CERTBOT_VERSION=$(final_version) .
 
 shell:
-	podman run --rm -v $(shell pwd):/mnt --entrypoint /bin/bash -ti $(container_version)
+	podman run --rm -v $(shell pwd):/mnt --entrypoint /bin/bash -ti $(ci_image_name):$(container_version)
 
 print_version:
 	@echo $(final_version)

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "k53certbot"
-version = "0.1.0+f8fe73a"
+version = "0.2.0"
 description = ""
 authors = ["Geoff Williams <geoff@declarativesystems.com>"]
 
@@ -11,6 +11,7 @@ loguru = "^0.5.3"
 docopt = "^0.6.2"
 requests = "^2.25.1"
 certbot-dns-route53 = "^1.13.0"
+schedule = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"

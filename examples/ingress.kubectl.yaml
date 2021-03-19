@@ -1,6 +1,8 @@
+# must use v1beta ingress until fixed:
+# https://github.com/kubernetes-client/python/issues/1330
 ---
 kind: Ingress
-apiVersion: networking.k8s.io/v1
+apiVersion: networking.k8s.io/v1beta1
 metadata:
   name: some-app
   annotations:
@@ -18,9 +20,6 @@ spec:
       http:
         paths:
           - path: /
-            pathType: Prefix
             backend:
-              service:
-                name: some-app
-                port:
-                  number: 80
+              serviceName: some-app
+              servicePort: 80

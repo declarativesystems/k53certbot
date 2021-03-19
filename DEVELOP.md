@@ -1,36 +1,43 @@
 # Developer instructions
 
-**This file was generated automatically**
-
-## Project Structure
-A skeleton CLI app was automatically configured by pyreleaser_io for:
-
-* A basic CLI application
-* pytest unit testing
-
 ## Where to add my code?
 Entry point is `k53certbot/cli.py` in function `main()`
 
 ## Running locally
 
 ```shell
-pipenv run k53certbot
+poetry run k53certbot
 ```
 
 ## Testing
 
 ```shell
-pipenv run pytest
+make test
 ```
 
 ## Getting a shell
 ```shell
-pipenv shell
+poetry shell
 ```
 
 ## Where does the executable come from?
 
-`k53certbot` is a shim generated automatically by setuptools, you can
-change it by altering the value for `entry_points` in `setup.py`.
+`k53certbot` is a shim generated automatically by poetry, see `pyproject.toml`.
 
-Reference: https://setuptools.readthedocs.io/en/latest/setuptools.html#adding-commands
+## K8S authentication
+
+**In Cluster**
+
+```
+kubernetes.config.load_incluster_config()
+```
+
+Authentication is automatic. In-cluster config is loaded from well-known-files
+
+**On workstation**
+
+Run with `--use-active-kube-context` to use active kubernetes context, like this:
+
+```bash
+ZEROSSL_API_KEY=NOUSE CERTBOT_ADMIN_EMAIL=dummy@dummy poetry run k53certbot --debug --dry-run --use-active-kube-context --provider zerossl
+```

@@ -18,7 +18,6 @@ import kubernetes.config
 import kubernetes.watch
 import base64
 import requests
-from kubernetes.client.rest import ApiException
 from loguru import logger
 
 ADDED = "ADDED"
@@ -41,8 +40,11 @@ def k8s_event_fqdns(event):
             if rule.host:
                 fqdn = rule.host
                 logger.debug(f"found ingress fqdn: {fqdn}")
+                namespace=event['object'].metadata.namespace
+
                 fqdns.append({
                     "fqdn": fqdn,
+                    "namespace": namespace,
                     "action": event["type"]
                 })
     else:
@@ -71,47 +73,52 @@ def setup_zerossl():
         raise RuntimeError(f"error setting up zerossl:{response.content}")
 
 
-def watch_kubernetes(cert_provider, test_cert, namespace):
+def k8s_auth(use_active_kube_context):
+    if use_active_kube_context:
+        logger.debug("loading default kube-config...")
+        kubernetes.config.load_kube_config()
+    else:
+        logger.debug("loading in-cluster kubernetes config...")
+        kubernetes.config.load_incluster_config()
+
+    logger.debug("...done")
+
+
+def watch_kubernetes(use_active_kube_context, cert_provider, test_cert, dry_run, renew_seconds):
     try:
         settings["email"] = os.environ["CERTBOT_ADMIN_EMAIL"]
     except KeyError:
         raise RuntimeError("missing environment variable CERTBOT_ADMIN_EMAIL")
 
-    if cert_provider == PROVIDER_ZEROSSL:
+    if cert_provider == PROVIDER_ZEROSSL and not dry_run:
         setup_zerossl()
 
-    logger.debug("loading in-cluster kubernetes config...")
-    kubernetes.config.load_incluster_config()
-    logger.debug("...done")
-
+    k8s_auth(use_active_kube_context)
     with kubernetes.client.ApiClient() as api_client:
         # scan all ingress instances
         api_instance = kubernetes.client.ExtensionsV1beta1Api(api_client)
         _continue = '_continue_example'
-        limit = 56
-        timeout_seconds = 56
-        logger.debug("starting watch kubernetes...")
+        logger.info(f"starting watch kubernetes..., will renew every {renew_seconds}s", renew_seconds=renew_seconds)
         w = kubernetes.watch.Watch()
 
         while True:
             try:
-                logger.debug("(re)start streaming....")
+                logger.info("(re)start streaming....")
                 for event in w.stream(
                         api_instance.list_ingress_for_all_namespaces,
-                        # allow_watch_bookmarks=allow_watch_bookmarks,
-                        # _continue=_continue,
-                        # field_selector=field_selector,
-                        limit=limit,
                         pretty=True,
-                        #timeout_seconds=timeout_seconds,
+                        timeout_seconds=renew_seconds,
                         watch=True,
                 ):
                     logger.debug(f"kubernetes event: {event}")
                     # its only possible to filter on metadata so we need to get all ingress
                     # changes and loop over them to find ones we need to act on
                     for data in k8s_event_fqdns(event):
-                        cert_providers[cert_provider](test_cert, data["fqdn"], data["action"])
-                        ensure_k8s_secret(api_client, namespace, data["fqdn"])
+                        if dry_run:
+                            logger.info("[dry run] - would have processed: {data}", data=data)
+                        else:
+                            cert_providers[cert_provider](test_cert, data["fqdn"], data["action"])
+                            ensure_k8s_secret(api_client, data["namespace"], data["fqdn"])
 
             except Exception as e:
                 logger.error(f"FIXME caught and ignored:{type(e)} - message:{e} (to avoid crash)")
@@ -161,7 +168,6 @@ def ensure_k8s_secret(api_client, namespace, fqdn):
     body = kubernetes.client.V1Secret(
         metadata={
             "name": secret_name,
-            # "namespace": namespace,
         },
         data={
             # "ca.crt": dump_file_base64(f"{TLS_DIR}/{fqdn}/.pem"),
