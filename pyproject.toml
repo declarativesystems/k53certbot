@@ -1,8 +1,9 @@
 [tool.poetry]
 name = "k53certbot"
-version = "0.2.0"
+version = "0.2.0+06fbfb6"
 description = ""
 authors = ["Geoff Williams <geoff@declarativesystems.com>"]
+include = ["k53certbot/version.py"]
 
 [tool.poetry.dependencies]
 python = "^3.8"

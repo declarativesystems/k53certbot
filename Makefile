@@ -6,7 +6,7 @@ git_rev := $(shell git rev-parse --short HEAD)
 git_tag := $(shell git tag --points-at HEAD 2> /dev/null | cut -c 2- | grep -E '.+')
 
 # version number from pyproject.toml less any +GITREV
-base_version := $(shell awk -F" = " '/version/  {gsub(/"/, "") ; split($$2, a, "+"); print a[1]}' pyproject.toml)
+base_version := $(shell awk -F" = " '/^version/  {gsub(/"/, "") ; split($$2, a, "+"); print a[1]}' pyproject.toml)
 
 ci_image_name := quay.io/declarativesystems/k53certbot
 
@@ -28,7 +28,7 @@ test: install patch_version
 
 clean:
 	rm -rf dist
-	rm k53certbot/version.py
+	rm -f k53certbot/version.py
 
 dist: patch_version
 	poetry build
